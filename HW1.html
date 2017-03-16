@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+<style>
+body {
+            background-image: url(http://i.imgur.com/BuX8rWA.png);
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            background-position: center;
+            background-size: 400px 500px;;
+        }
+
+</style>
+</head>
+
+<body> 
+<br><br><br><br><br><br><br><br>
+<div id='Light0' style='float:left; text-align:center;width:25%'>Light0</div><br>
+<div id='Light1' style='float:right;text-align:center; width:25%'>Light1</div><br>
+<div id='Light2' style='float:left;text-align:center; width:25%'>Light2</div><br>
+<div id='Light3' style='float:right;text-align:center; width:25%'>Light3</div><br>
+<div id='Light4' style='float:left;text-align:center; width:25%'>Light4</div><br>
+<div id='Light5' style='float:right;text-align:center; width:25%'>Light5</div><br>
+<div id='Light6' style='float:left; text-align:center; width:25%'>Light6</div><br>
+<div id='Light7' style='float:right; text-align:center; width:25%'>Light6</div><br>
+<div id='Light8' style='float:left; text-align:center; width:25%'>Light6</div><br>
+<br>
+<br>
+<br>
+<center>
+<button id='toggle' >
+  Switch
+  </button></center>
+
+<script>
+function Light(name, onColor, time) {
+  if (name)
+    this.name = name;
+  else {
+    Light.serial = Light.serial !== undefined ? ++Light.serial : 0;
+    this.name = 'Light' + Light.serial;
+  }
+  var timer;
+  var status = false;
+  var power = false;
+  var toggle = function() {
+    status = !status;
+    if (status === true) {
+      $('#' + name).css('backgroundColor', onColor);
+      $('#' + name).text(name + ' is on');
+    } else {
+      $('#' + name).css('backgroundColor', 'rgb(200,200,200)');
+      $('#' + name).text(name + ' is off');
+    }
+  }
+  this.check = function() {
+    return status;
+  }
+  this.toggleBlink = function() {
+    power = !power;
+    if (power === true) {
+      timer = setInterval(toggle, time);
+    } else {
+      $('#' + name).css('backgroundColor', 'rgb(200,200,200)');
+      $('#' + name).text(name + ' is off');
+      clearInterval(timer);
+    }
+  }
+}
+var lamps = [];
+var l0 = new Light('Light0', 'rgb(250,85,65)', 500);
+var l1 = new Light('Light1', 'rgb(250,230,140)', 400);
+var l2 = new Light('Light2', 'rgb(250,250,110)', 300);
+var l3 = new Light('Light3', 'rgb(180,250,150)', 410);
+var l4 = new Light('Light4', 'rgb(150,210,250)', 450);
+var l5 = new Light('Light5', 'rgb(150,150,250)', 350);
+var l6 = new Light('Light6', 'rgb(200,150,250)', 600);
+var l7 = new Light('Light7', 'rgb(250,150,250)', 520);
+var l8 = new Light('Light8', 'rgb(250,150,200)', 380);
+
+lamps.push(l0);
+lamps.push(l1);
+lamps.push(l2);
+lamps.push(l3);
+lamps.push(l4);
+lamps.push(l5);
+lamps.push(l6);
+lamps.push(l7);
+lamps.push(l8);
+
+$('#toggle').click(function() {
+  for (i = 0; i < lamps.length; i++)
+    lamps[i].toggleBlink();
+});
+
+
+</script>
+</body>
+
+</html>
