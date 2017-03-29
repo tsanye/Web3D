@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+<style>
+#info {
+  position: absolute;
+  top: 0px;
+  width: 100%;
+  padding: 10px;
+  text-align: center;
+  color: #ffff00
+}
+
+body {
+  overflow: hidden;
+}
+
+
+</style>
+</head>
+
+<body> 
+<div id="info">I3B05 HW2  (<a href="https://tsanye.github.io/Web3D/FoorPlan.png">FoorPlan)
+  <p id='view1'>
+    Click here to view1
+  </p>
+  <p id='view2'>
+    Click here to view2
+  </p>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/84/three.min.js"></script>
+  <script src="https://threejs.org/examples/js/controls/OrbitControls.js">
+
+
+  </script>
+  <script src="https://jyunming-chen.github.io/tutsplus/js/KeyboardState.js"></script>
+
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script>
+
+$('#view1').click(
+  function() {
+    camera.position.set(70, 150, 100);
+    camera.lookAt(new THREE.Vector3(0, 0, 0));
+  }
+);
+$('#view2').click(
+  function() {
+    camera.position.set(-120, 150, -100);
+    camera.lookAt(new THREE.Vector3(0, 0, 0));
+  }
+);
+
+var camera, scene, renderer, mesh, light, controls;
+var texture , bground; 
+var wallMesh = new THREE.MeshLambertMaterial({color: 0xEE6600}) ;
+
+init();
+animate();
+
+function init() {
+  scene = new THREE.Scene();
+
+  camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 1000);
+  camera.position.set(70, 200, 350);
+  scene.add(camera);
+
+  light = new THREE.PointLight(0xffffff);
+  light.position.set(100, 300, 200);
+  scene.add(light);
+
+  var gridXZ = new THREE.GridHelper(200, 20, 'red', 'white');
+  scene.add(gridXZ);
+
+  var axes = new THREE.AxisHelper(25);
+  scene.add(axes);
+
+  renderer = new THREE.WebGLRenderer();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0x888888);
+
+  controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+  document.body.appendChild(renderer.domElement);
+  ////////////////////////////////////////////////////////////////////////
+
+
+  var geometry = new THREE.PlaneGeometry(180, 180);
+  var material = new THREE.MeshBasicMaterial({
+    color: 0x666666,
+    side: THREE.DoubleSide
+  });
+
+  var ground = new THREE.Mesh(geometry, material);
+  ground.rotation.x = Math.PI / 2;
+  scene.add(ground);
+  
+  buildWall() ;
+  buildBathroom();
+  buildLivingroom();
+  buildRoom1() ;
+  buildRoom2() ;
+  buildRoom3() ;
+  
+  var light1 = new THREE.PointLight();
+  light1.position.set(50, 150, 40);
+  scene.add(light1);
+
+	var light2 = new THREE.PointLight();
+  light2.position.set(-80, 50, -70);
+  scene.add(light2);
+
+
+}
+function  buildBathroom(){
+
+	var bathroomWall1 =new THREE.Mesh(new THREE.BoxGeometry(30, 30, 5), wallMesh);
+  scene.add(bathroomWall1);
+  bathroomWall1.position.set(-70, 15, 32.5);
+  
+  var bathroomWall2 =new THREE.Mesh(new THREE.BoxGeometry(5, 30, 60), wallMesh);
+  scene.add(bathroomWall2);
+  bathroomWall2.position.set(-87.5, 15, 60);
+  
+  var bathroomWall3 =new THREE.Mesh(new THREE.BoxGeometry(40, 30, 5), wallMesh);
+  scene.add(bathroomWall3);
+  bathroomWall3.position.set(-65, 15, 87.5);
+  
+  var bathroomWall4 = new THREE.Mesh(new THREE.BoxGeometry(5, 30, 55), wallMesh);
+  scene.add(bathroomWall4);
+  bathroomWall4.position.set(-42.5, 15, 57.5);
+
+}
+function buildLivingroom(){
+	
+	var livroomWall1 = new THREE.Mesh(new THREE.BoxGeometry(60, 30, 5), wallMesh);
+  scene.add(livroomWall1);
+  livroomWall1.position.set(15, 15, 32.5);
+  
+  var livroomWall2 = new THREE.Mesh(new THREE.BoxGeometry(5, 30, 55), wallMesh);
+  scene.add(livroomWall2);
+  livroomWall2.position.set(67.5, 15, 57.5);
+  
+  var livroomWall3 = new THREE.Mesh(new THREE.BoxGeometry(5, 30, 55), wallMesh);
+  scene.add(livroomWall3);
+  livroomWall3.position.set(-37.5, 15, 57.5);
+  
+  var livroomWall4 = new THREE.Mesh(new THREE.BoxGeometry(115, 30, 5), wallMesh );
+  scene.add(livroomWall4);
+  livroomWall4.position.set(12.5, 15, 87.5);
+
+}
+
+function buildRoom1(){
+
+	var room1Wall1 = new THREE.Mesh(new THREE.BoxGeometry(75, 30, 5), wallMesh);
+  scene.add(room1Wall1);
+  room1Wall1.position.set(-47.5, 15, -27.5);
+  
+  var room1Wall2 = new THREE.Mesh(new THREE.BoxGeometry(50, 30, 5), wallMesh);
+  scene.add(room1Wall2);
+  room1Wall2.position.set(-60, 15, 17.5);
+  
+  var room1Wall3 = new THREE.Mesh(new THREE.BoxGeometry(5, 30, 45), wallMesh);
+  scene.add(room1Wall3);
+  room1Wall3.position.set(-12.5, 15, -2.5);
+  
+  var room1Wall4 = new THREE.Mesh(new THREE.BoxGeometry(5, 30, 50), wallMesh);
+  scene.add(room1Wall4);
+  room1Wall4.position.set(-87.5, 15, -5);
+
+}
+
+function buildRoom2(){
+	
+  var room2Wall1 = new THREE.Mesh(new THREE.BoxGeometry(5, 30, 65), wallMesh);
+  scene.add(room2Wall1);
+  room2Wall1.position.set(2.5, 15, -12.5);
+  
+  var room2Wall2 = new THREE.Mesh(new THREE.BoxGeometry(5, 30, 70), wallMesh);
+  scene.add(room2Wall2);
+  room2Wall2.position.set(47.5, 15, -15);
+  
+  var room2Wall3 = new THREE.Mesh(new THREE.BoxGeometry(25, 30, 5), wallMesh);
+  scene.add(room2Wall3);
+  room2Wall3.position.set(17.5, 15, 17.5);
+  
+  var room2Wall4 =new THREE.Mesh(new THREE.BoxGeometry(50, 30, 5 ) , wallMesh );
+  scene.add(room2Wall4);
+  room2Wall4.position.set(25, 15, -47.5);
+
+}
+
+function buildRoom3(){
+
+	var room3Wall1 = new THREE.Mesh(new THREE.BoxGeometry(80, 30, 5), wallMesh);
+  scene.add(room3Wall1);
+  room3Wall1.position.set(-50, 15, -87.5);
+  
+  var room3Wall2 = new THREE.Mesh(new THREE.BoxGeometry(5, 30, 45), wallMesh);
+  scene.add(room3Wall2);
+  room3Wall2.position.set(-12.5, 15, -62.5);
+  
+  var room3Wall3 = new THREE.Mesh(new THREE.BoxGeometry(50, 30, 5), wallMesh);
+  scene.add(room3Wall3);
+  room3Wall3.position.set(-60, 15, -42.5);
+  
+  var room3Wall4 = new THREE.Mesh(new THREE.BoxGeometry(5, 30, 45), wallMesh);
+  scene.add(room3Wall4);
+  room3Wall4.position.set(-87.5, 15, -62.5);
+
+}
+
+function buildWall(){
+  
+  var Wall1 = new THREE.Mesh(new THREE.BoxGeometry(5, 30, 10), wallMesh);
+  scene.add( Wall1);
+  Wall1.position.set(-87.5, 15, -35);
+  
+  var Wall2 = Wall1.clone();
+  scene.add( Wall2);
+  Wall2.position.set(-87.5, 15, 25);
+  
+  var Wall3 = new THREE.Mesh(new THREE.BoxGeometry(10, 30, 5), wallMesh);
+  scene.add( Wall3);
+  Wall3.position.set(-5, 15, -47.5);
+ 
+  var Wall4 = new THREE.Mesh(new THREE.BoxGeometry(5, 30, 80 ) , wallMesh );
+  scene.add(Wall4);
+  Wall4.position.set(67.5, 15, -10);
+  
+}
+
+function animate() {
+  controls.update();
+  requestAnimationFrame(animate);
+  render();
+}
+
+function render() {
+  renderer.render(scene, camera);
+}
+</script>
+</body>
+
+</html>
