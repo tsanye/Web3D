@@ -3,7 +3,7 @@
 <html>
 
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta charset="UTF-8">
 <style>
 #info {
   position: absolute;
@@ -361,24 +361,24 @@ function onDocumentMouseDown(event) {
   //  var intersects = raycaster.intersectObjects( pickables, true );
   var intersects = raycaster.intersectObjects(pickables);
   if (intersects.length > 0) {
-    if (intersects[0].object.name === "Saber") 
-    		$('#intro').text('Class:Saber');
+     if (intersects[0].object.name === "Saber") 
+    		$('#intro').text('Saber-劍兵：武器為刀劍。除魔力以外所有能力值皆為最高');
     else if (intersects[0].object.name === "Archer") 
-    $('#intro').text('Class:Archer');
+    $('#intro').text('Archer-弓兵：擅長遠距離攻擊，也能當做偵查兵使用');
     else if (intersects[0].object.name === "Lancer") 
-    $('#intro').text('Class:Lancer');
+    $('#intro').text('Lancer-槍兵：武器為長槍，擅長正面戰，敏捷值特高');
     else if (intersects[0].object.name === "Rider") 
-    $('#intro').text('Class:Rider');
+    $('#intro').text('Rider-騎兵：乘著專屬座騎進行戰鬥，另外擁有豐富寶具');
     else if (intersects[0].object.name === "Caster") 
-    $('#intro').text('Class:Caster');
+    $('#intro').text('Caster-魔術師：擅長使用強大魔術，能夠建立自己的陣地');
     else if (intersects[0].object.name === "Assassin") 
-    $('#intro').text('Class:Assassin');
+    $('#intro').text('Assassin-暗殺者：專長於隱密行動與暗殺技巧，能夠消除自己氣息');
     else if (intersects[0].object.name === "Berserker") 
-    $('#intro').text('Class:Berserker');
+    $('#intro').text('Berserker-狂戰士：犧牲理智以換取強大力量，擁有高等破壞力');
     else if (intersects[0].object.name === "Ruler") 
-    $('#intro').text('Class:Ruler');
+    $('#intro').text('Ruler-裁定者：擁有特高的防禦力，在團隊中擔任輔助角色');
     else if (intersects[0].object.name === "Avenger") 
-    $('#intro').text('Class:Avenger');
+    $('#intro').text('Avenger-復仇者：擁有特高的攻擊力，適合單騎作戰');
   }
 }
 
