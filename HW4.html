@@ -9,15 +9,17 @@
 </style>
 </head>
 
-<body > 
+<body bgcolor=#33CCFF> 
 <h1 style="text-align:center"> I3B05 HW4 </h1>
 <hr>
 <div id="container" style="float:left; margin:3px; width:60vw; height:60vw">
 </div>
 <div style="float:left; margin-left: 10px; width:32vw;">
   <div>
-    Furniture Size: <input type =range  min=20 max=50 id='size' >
-    <span id='sizePrint'></span>
+    Furniture Size:
+    <input type=radio class='sclass' name = 's' value=30 checked>30
+	<input type=radio class='sclass' name = 's' value=35>35
+    <input type=radio class='sclass' name = 's' value=40>40
   </div>
   <br>
   <div style='background-color:orange'>
@@ -27,6 +29,15 @@
 	<input type=radio class='fclass' name = 'f' value='chair2'>chair2
     <input type=radio class='fclass' name = 'f' value='table'>table
     <input type=radio class='fclass' name = 'f' value='sofa'>sofa
+  </div>
+  <br>
+  <div style='background-color:red'>
+    Carpet Selector: <input type=checkbox id='carpet' checked> 
+    <br>
+    <input type=radio class='cclass' name = 'c' value='1' checked>type1
+	<input type=radio class='cclass' name = 'c' value='2'>type2
+    <input type=radio class='cclass' name = 'c' value='3'>type3
+    <input type=radio class='cclass' name = 'c' value='4'>type4
   </div>
   <br>
   <button id='clear' style="width:45%">Clear</button>
@@ -49,18 +60,40 @@ var camera, scene, renderer, controls;
 var raycaster = new THREE.Raycaster();
 var mouse = new THREE.Vector2();
 var pickplane;
-var size = 20 ;
+var size = 30 ;
 var cyl;
 var furnitures = [];
 var type = 'chair1' ;
+var carpet ; 
+var addCarpet = true ;
 
-$('#size').change(function() {
-  size = $(this).val();
-  $('#sizePrint').text($(this).val());
+$('#carpet').click ( function() {
+	addCarpet = !addCarpet;
+    if( ! addCarpet ) 
+		scene.remove( carpet) ;
+    else
+		buildCarpet() ;
+});
+
+
+$('.sclass').click(function() {
+  size = $(this).val() ;
 });
 
 $('.fclass').click(function() {
   type = $(this).val() ;
+});
+
+$('.cclass').click(function() {
+	var ctype = $(this).val() ;
+	if( ctype === '1')
+		loadTexture(carpet , 'https://i.imgur.com/6VdzmpZ.jpg');
+	else if( ctype === '2')
+		loadTexture(carpet , 'https://i.imgur.com/SR17XuY.jpg');
+	else if( ctype === '3')
+		loadTexture(carpet , 'https://i.imgur.com/HUPFAPp.jpg');
+	else if( ctype === '4')
+		loadTexture(carpet , 'https://i.imgur.com/w09cpGd.jpg');
 });
 
 init();
@@ -86,7 +119,7 @@ $('#restore').click(function() {
   states.forEach(function(stateStr) {
     console.log(stateStr);
     var state = JSON.parse(stateStr);
-    loaders(state.mtl, state.obj, new THREE.Vector3(state.pos[0], 0, state.pos[1]));
+    loaders(state.size , state.mtl, state.obj, new THREE.Vector3(state.pos[0], 0, state.pos[1]));
   });
 });
 
@@ -112,7 +145,7 @@ function loadTexture(  mesh , url ) {
  
 }
 
-function loaders(mtlName, objName, pos) {
+function loaders(furnitureSize , mtlName, objName, pos) {
 
   // model
   var onProgress = function(xhr) {
@@ -135,10 +168,11 @@ function loaders(mtlName, objName, pos) {
     objLoader.setPath('Resource/');
     objLoader.load(objName, function(object) {
       var furniture = new THREE.Object3D();
-      furniture = unitize(object, size);
+      furniture = unitize(object, furnitureSize);
       scene.add(furniture);
 
       var prop = {
+		size: furnitureSize,
         mtl: mtlName,
         obj: objName,
         pos: [pos.x, pos.z]
@@ -237,7 +271,7 @@ function init() {
   scene.add(ground);
   ground.rotation.x = -Math.PI / 2;
   ground.position.y = 0.5;
-	loadTexture(ground , 'https://i.imgur.com/7TxRw0E.jpg');
+  loadTexture(ground , 'https://i.imgur.com/7TxRw0E.jpg');
 
   pickplane = new THREE.Mesh(new THREE.PlaneGeometry(200, 200),
     new THREE.MeshBasicMaterial({
@@ -256,6 +290,16 @@ function init() {
   window.addEventListener('resize', onWindowResize, false);
   window.addEventListener('mousemove', onDocumentMouseMove, false);
   window.addEventListener('mousedown', onDocumentMouseDown, false);
+  
+  buildCarpet();
+}
+
+function buildCarpet(){
+  carpet = new THREE.Mesh(new THREE.PlaneGeometry(150, 150) , new THREE.MeshLambertMaterial() );
+  scene.add(carpet);
+  carpet.rotation.x = -Math.PI / 2;
+  carpet.position.y = 0.7;
+  loadTexture(carpet , 'https://i.imgur.com/6VdzmpZ.jpg');
 }
 
 function onWindowResize() {
@@ -297,16 +341,16 @@ function onDocumentMouseDown(event) {
     cyl.position.copy(intersects[0].point);
     
     if( type === 'chair1') {
-		loaders('chair1.mtl', 'chair1.obj', intersects[0].point);
+		loaders(size , 'chair1.mtl', 'chair1.obj', intersects[0].point);
     }
 	else if( type === 'chair2') {
-		loaders('chair2.mtl', 'chair2.obj', intersects[0].point);
+		loaders(size , 'chair2.mtl', 'chair2.obj', intersects[0].point);
     }
     else if( type === 'table'){
-    	loaders('table.mtl', 'table.obj', intersects[0].point);
+    	loaders(size , 'table.mtl', 'table.obj', intersects[0].point);
     }
     else if( type === 'sofa'){
-    	loaders('sofa.mtl', 'sofa.obj', intersects[0].point);
+    	loaders(size , 'sofa.mtl', 'sofa.obj', intersects[0].point);
     }
   }
 }
