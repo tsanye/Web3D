@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+<style>
+
+
+</style>
+</head>
+
+<body > 
+<h1 style="text-align:center"> I3B05 HW4 </h1>
+<hr>
+<div id="container" style="float:left; margin:3px; width:60vw; height:60vw">
+</div>
+<div style="float:left; margin-left: 10px; width:32vw;">
+  <div>
+    Furniture Size: <input type =range  min=20 max=50 id='size' >
+    <span id='sizePrint'></span>
+  </div>
+  <br>
+  <div style='background-color:orange'>
+    Furniture Selector:
+    <br>
+    <input type=radio class='fclass' name = 'f' value='chair1' checked>chair1
+	<input type=radio class='fclass' name = 'f' value='chair2'>chair2
+    <input type=radio class='fclass' name = 'f' value='table'>table
+    <input type=radio class='fclass' name = 'f' value='sofa'>sofa
+  </div>
+  <br>
+  <button id='clear' style="width:45%">Clear</button>
+  <button id='save' style="width:45%">Save</button>
+  <button id='restore' style="width:45%">Restore</button>
+</div>
+
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/84/three.min.js"></script>
+<script src="https://threejs.org/examples/js/controls/OrbitControls.js">
+
+
+</script>
+<script src="https://rawgit.com/mrdoob/three.js/master/examples/js/loaders/MTLLoader.js"></script>
+<script src="https://rawgit.com/mrdoob/three.js/master/examples/js/loaders/OBJLoader.js"></script>
+
+<script>
+
+var camera, scene, renderer, controls;
+var raycaster = new THREE.Raycaster();
+var mouse = new THREE.Vector2();
+var pickplane;
+var size = 20 ;
+var cyl;
+var furnitures = [];
+var type = 'chair1' ;
+
+$('#size').change(function() {
+  size = $(this).val();
+  $('#sizePrint').text($(this).val());
+});
+
+$('.fclass').click(function() {
+  type = $(this).val() ;
+});
+
+init();
+animate();
+
+$('#clear').click(function() {
+  furnitures.forEach(function(furniture) {
+    scene.remove(furniture);
+  });
+  furnitures = [];
+});
+
+$('#save').click(function() {
+  var states = [];
+  furnitures.forEach(function(furniture) {
+    states.push(furniture.name);
+  });
+  localStorage.setItem('stateStr', JSON.stringify(states));
+});
+
+$('#restore').click(function() {
+  var states = JSON.parse(localStorage.getItem('stateStr'));
+  states.forEach(function(stateStr) {
+    console.log(stateStr);
+    var state = JSON.parse(stateStr);
+    loaders(state.mtl, state.obj, new THREE.Vector3(state.pos[0], 0, state.pos[1]));
+  });
+});
+
+function loadTexture(  mesh , url ) {
+
+	// instantiate a loader
+  var loader = new THREE.TextureLoader();
+  loader.setCrossOrigin('');
+  // load a resource
+  loader.load(
+    url, 
+    function (texture) {   // Function when resource is loaded
+    	console.log ('texture loaded ...');
+      mesh.material = new THREE.MeshLambertMaterial( { map: texture});     
+    },   
+    function(xhr) {   // Function called when download progresses
+      console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+    },   
+    function(xhr) {   // Function called when download errors
+      console.log('An error happened');
+    }
+  );
+ 
+}
+
+function loaders(mtlName, objName, pos) {
+
+  // model
+  var onProgress = function(xhr) {
+    if (xhr.lengthComputable) {
+      var percentComplete = xhr.loaded / xhr.total * 100;
+      console.log(Math.round(percentComplete, 2) + '% downloaded');
+    }
+  };
+
+  var onError = function(xhr) {};
+
+  var mtlLoader = new THREE.MTLLoader();
+  mtlLoader.setPath('Resource/');
+  mtlLoader.load(mtlName, function(materials) {
+
+    materials.preload();
+
+    var objLoader = new THREE.OBJLoader();
+    objLoader.setMaterials(materials);
+    objLoader.setPath('Resource/');
+    objLoader.load(objName, function(object) {
+      var furniture = new THREE.Object3D();
+      furniture = unitize(object, size);
+      scene.add(furniture);
+
+      var prop = {
+        mtl: mtlName,
+        obj: objName,
+        pos: [pos.x, pos.z]
+      };
+      console.log(prop);
+      furniture.name = JSON.stringify(prop);
+      console.log(furniture.name);
+
+      furnitures.push(furniture);
+      furniture.position.copy(pos);
+
+      object.traverse(
+        function(mesh) {
+          if (mesh instanceof THREE.Mesh) {
+            mesh.material.side = THREE.DoubleSide;
+          }
+        });
+
+    }, onProgress, onError);
+
+  });
+
+}
+
+function unitize(object, targetSize) {
+
+  // find bounding box of 'object'
+  var box3 = new THREE.Box3();
+  box3.setFromObject(object);
+  var size = new THREE.Vector3();
+  size.subVectors(box3.max, box3.min);
+  var center = new THREE.Vector3();
+  center.addVectors(box3.max, box3.min).multiplyScalar(0.5);
+
+  console.log('center: ' + center.x + ', ' + center.y + ', ' + center.z);
+  console.log('size: ' + size.x + ', ' + size.y + ', ' + size.z);
+
+  // uniform scaling according to objSize
+  var objSize = findMax(size);
+  var scaleSet = targetSize / objSize;
+
+  var theObject = new THREE.Object3D();
+  theObject.add(object);
+  object.scale.set(scaleSet, scaleSet, scaleSet);
+  object.position.set(-center.x * scaleSet, -center.y * scaleSet + size.y / 2 * scaleSet, -center.z * scaleSet);
+
+  return theObject;
+
+  // helper function
+  function findMax(v) {
+    if (v.x > v.y) {
+      return v.x > v.z ? v.x : v.z;
+    } else { // v.y > v.x
+      return v.y > v.z ? v.y : v.z;
+    }
+  }
+
+}
+
+function init() {
+
+  var ww = $("#container").innerWidth();
+  var hh = $("#container").innerHeight();
+  renderer = new THREE.WebGLRenderer();
+  renderer.setSize(ww, hh);
+  renderer.setClearColor(0x888888);
+  $("#container").append(renderer.domElement);
+
+  ////////////////////////////////////////////////
+
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(50, ww / hh, 1, 1000);
+  camera.position.set(70, 200, 350);
+  scene.add(camera);
+
+  var ambient = new THREE.AmbientLight(0x444444);
+  scene.add(ambient);
+
+  var directionalLight = new THREE.DirectionalLight(0xffffff);
+  directionalLight.position.set(0, 1, 1).normalize();
+  scene.add(directionalLight);
+
+  var cyl_geom = new THREE.RingGeometry(5, 10, 32);
+  var cyl_mat = new THREE.MeshBasicMaterial({
+    color: 0xff1234,
+  });
+  cyl = new THREE.Mesh(cyl_geom, cyl_mat);
+  cyl.rotation.x = -Math.PI / 2;
+  cyl.position.set(-20, 0, 20);
+  scene.add(cyl);
+  
+  var geometry = new THREE.PlaneGeometry(250, 250);
+  var material = new THREE.MeshLambertMaterial();
+
+  var ground = new THREE.Mesh(geometry, material);
+  scene.add(ground);
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.y = 0.5;
+	loadTexture(ground , 'https://i.imgur.com/7TxRw0E.jpg');
+
+  pickplane = new THREE.Mesh(new THREE.PlaneGeometry(200, 200),
+    new THREE.MeshBasicMaterial({
+      color: 0xff1234
+    }));
+  pickplane.rotation.x = -Math.PI / 2;
+  scene.add(pickplane);
+  pickplane.material.visible = false;
+
+  var gridXZ = new THREE.GridHelper(200, 20, 'red', 'white');
+  scene.add(gridXZ);
+  var geometry = new THREE.PlaneGeometry(200, 200);
+  var material = new THREE.MeshLambertMaterial();
+
+  controls = new THREE.OrbitControls(camera, renderer.domElement);
+  window.addEventListener('resize', onWindowResize, false);
+  window.addEventListener('mousemove', onDocumentMouseMove, false);
+  window.addEventListener('mousedown', onDocumentMouseDown, false);
+}
+
+function onWindowResize() {
+  var ww = $("#container").innerWidth();
+  var hh = $("#container").innerHeight();
+
+  camera.aspect = ww / hh;
+  camera.updateProjectionMatrix();
+  renderer.setSize(ww, hh);
+}
+
+function onDocumentMouseMove(event) {
+
+  event.preventDefault();
+
+  var viewportPos = $('#container').get(0).getBoundingClientRect();
+  mouse.x = ((event.clientX - viewportPos.left) / $('#container').innerWidth()) * 2 - 1;
+  mouse.y = -((event.clientY - viewportPos.top) / $('#container').innerHeight()) * 2 + 1;
+
+  raycaster.setFromCamera(mouse, camera);
+  var intersects = raycaster.intersectObject(pickplane);
+  if (intersects.length > 0) {
+    cyl.position.copy(intersects[0].point);
+    cyl.position.y = 2;
+  }
+}
+
+function onDocumentMouseDown(event) {
+
+  event.preventDefault();
+
+  var viewportPos = $('#container').get(0).getBoundingClientRect();
+  mouse.x = ((event.clientX - viewportPos.left) / $('#container').innerWidth()) * 2 - 1;
+  mouse.y = -((event.clientY - viewportPos.top) / $('#container').innerHeight()) * 2 + 1;
+
+  raycaster.setFromCamera(mouse, camera);
+  var intersects = raycaster.intersectObject(pickplane);
+  if (intersects.length > 0) {
+    cyl.position.copy(intersects[0].point);
+    
+    if( type === 'chair1') {
+		loaders('chair1.mtl', 'chair1.obj', intersects[0].point);
+    }
+	else if( type === 'chair2') {
+		loaders('chair2.mtl', 'chair2.obj', intersects[0].point);
+    }
+    else if( type === 'table'){
+    	loaders('table.mtl', 'table.obj', intersects[0].point);
+    }
+    else if( type === 'sofa'){
+    	loaders('sofa.mtl', 'sofa.obj', intersects[0].point);
+    }
+  }
+}
+
+function animate() {
+
+  controls.update();
+  requestAnimationFrame(animate);
+  render();
+}
+
+function render() {
+  renderer.render(scene, camera);
+}
+
+
+</script>
+</body>
+
+</html>
