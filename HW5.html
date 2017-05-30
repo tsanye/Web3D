@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+<center>
+<style>
+.dateField {
+  width: 40%
+}
+
+.rec {
+  background: cyan;
+}
+
+input {
+  margin: 3px
+}
+
+#recordPanel {
+  overflow: scroll
+}
+
+</style>
+</head>
+
+<body> 
+<h1> WEB3D I3B05 HW5 </h1>
+<hr>
+<input type='text' id='loginID' style="width:20%">
+<button id='login'>Login</button>
+<br>
+<span id='loginReport'></span>
+<br>
+<div id='recordPanel' style="height:50vh">
+</div>
+<br>
+<br>
+<button id='save'>Save Log</button>
+<button id='check'>Check Log</button>
+<br><br>
+<div id='result'></div>
+</center>
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+
+<script>
+
+var loginName ;
+var log;
+var logFilename;
+var records = [];
+
+$('#login').click( function() {
+	
+	loginName = $('#loginID').val();
+	console.log ( 'login name: ' + loginName );
+	
+	$.get( "http://127.0.0.1:1337/login?name="+ $('#loginID').val() , function( data ) {
+		console.log ('after get');
+		console.log ('code: ' + data.status);
+		console.log ('output: ' + data.output);
+	
+		if(data) {
+			if (data.output === "1") 
+				$('#loginReport').text ( loginName + ', you have been added!' );
+			else
+				$('#loginReport').text ( loginName + ', welcome back!' );
+		}
+	});(null)
+	
+	var d = new Date();
+	var YYYYMMDD = d.getFullYear()*10000 + (d.getMonth()+1)*100 + d.getDate();
+	var hour = d.getHours() >= 10 ? d.getHours() : "0" + d.getHours() ;
+	var minute = d.getMinutes() >= 10 ? d.getMinutes() : "0" + d.getMinutes() ;
+	var second = d.getSeconds() >= 10 ? d.getSeconds() : "0" + d.getSeconds() ;
+	var currentTime = YYYYMMDD + "-" + hour + ":" + minute + ":" + second ;
+	
+	$('#recordPanel').append("<input type='text' style='border-style:none;' value = ' Time'><input type='text' style='border-style:none;' value = ' Location'>");
+	$('#recordPanel').append("<br><input id = 'start'><input value = '0'>");
+	$('#start').val(currentTime);
+	$('#recordPanel').append($("<button />", {
+		class: 'rec',
+		text: 'next',
+		click : function() {
+			//console.log (parseInt ($(this).prev().val() ));
+		  var rec = {
+			ET: currentTime,
+			LOC: "0"
+		  };
+		  console.log(rec);
+		  records.push(rec);
+		  addRecord();
+		}
+	  }));
+});
+
+function addRecord() { 
+	
+	
+	$('#recordPanel').append("<br><input><input>");
+	$('#recordPanel').append($("<button />", {
+		class: 'rec',
+		text: 'next',
+		click: function() {
+			//console.log (parseInt ($(this).prev().val() ));
+			// allow only meaningful input
+			if (isNaN (parseInt ($(this).prev().val()))) return;
+			var d = new Date();
+			var YYYYMMDD = d.getFullYear()*10000 + (d.getMonth()+1)*100 + d.getDate();
+			var hour = d.getHours() >= 10 ? d.getHours() : "0" + d.getHours() ;
+			var minute = d.getMinutes() >= 10 ? d.getMinutes() : "0" + d.getMinutes() ;
+			var second = d.getSeconds() >= 10 ? d.getSeconds() : "0" + d.getSeconds() ;
+			var currentTime = YYYYMMDD + "-" + hour + ":" + minute + ":" + second ;
+			$(this).prev().prev().val(currentTime);
+			var rec = {
+				ET: currentTime,
+				LOC: $(this).prev().val()
+			};
+			console.log(rec);
+			records.push(rec);
+			addRecord();
+		}
+  }));
+}
+
+$('#save').click ( function() {
+	var d = new Date();
+	var YYYYMMDD = d.getFullYear()*10000 + (d.getMonth()+1)*100 + d.getDate();
+	
+	// IIFE of records
+	var dd = [];
+	dd.push (new Date().getTime());
+	dd.push (records.length);
+	for (var i = 0; i < records.length; i++) {
+		dd.push (records[i].ET);
+		dd.push (records[i].LOC);
+	}
+	console.log ('dd: ' + dd);
+	log = jQuery.param ({ data: dd });
+	console.log (log);
+	
+	logFilename = loginName + YYYYMMDD + '.log';
+	console.log ('filename:' + logFilename);
+	console.log ('before get:' + log);
+	
+	$.get ("http://127.0.0.1:1337/writelog?filename=" + logFilename + '&'+ log, function ( data ) {
+		
+	});
+});
+
+$('#check').click ( function() {
+
+	console.log ('in download ...');
+	
+	// which one to retrieve?
+	
+	$.get ("http://127.0.0.1:1337/readlog?filename="+logFilename, function ( data ) {
+		console.log ('dataOut: ' + data.output);
+		
+		var logs = data.output.split (' ');
+		var date = logs[0];
+		
+		var checkRecords=[];
+		
+		var n = logs[1];
+		for (var i = 0; i < n; i++) {
+			var record = {Time: logs[2+2*i], Location: logs[2+2*i+1]};
+			checkRecords.push (record);
+		}
+		
+		$('#result').html (logFilename + '<br><br>' + JSON.stringify (checkRecords));
+		
+	});
+});
+</script>
+</body>
+
+</html>
