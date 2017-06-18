@@ -226,7 +226,7 @@ $('#restore').click (function() {
 $('#replay').click ( function() {
 
 	console.log ('in download ...');
-	logFilename = $('#dateSelect').val() + '.log';
+	logFilename = username + $('#dateSelect').val() + '.log';
 	// which one to retrieve?
 	
 	$.get ("http://127.0.0.1:1337/readlog?filename="+logFilename, function ( data ) {
