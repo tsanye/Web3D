@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+<style>
+body {
+  overflow: hidden;
+}
+
+</style>
+</head>
+
+<body>
+<h1 style="text-align:center"> I3B05 HW6 </h1>
+<hr>
+<div id = "select1" style="text-align:center;font-size:20px" >
+Choose observer to review its activity
+<select id='observerSelect'></select>&nbsp;<button id='submit1'>Submit</button>
+<br>or<br>
+Login to create new records&nbsp;&nbsp;&nbsp;<input type = "text" id = 'uname'><button id='submit2'>Submit</button>
+<hr>
+</div>
+<div id = "select2" style="text-align:center;font-size:20px" >
+Choose  date
+<select id='dateSelect'></select>&nbsp;<button id='submit3'>Submit</button>
+<br>
+<hr>
+</div>
+
+<div id="container" style="float:left; margin:3px; width:60vw; height:60vw">
+</div>
+<div id = "playRecord" style="float:left; margin-left: 10px; width:32vw;">
+  <br>
+  <button id="replay" style="width:100%">Replay </button>
+  <br>
+  </div>
+ <div id = "option" style="float:left; margin-left: 10px; width:32vw;">
+  <br>
+  <button id="play" style="width:100%">Playback </button>
+  <br>
+  <br>
+  <button id="clear" style="width:100%">Clear </button>
+  <br>
+  <br>
+  <button id="save" style="width:100%">Save</button>
+  <br><br>
+  <button id="restore" style="width:100%">Restore </button>
+  <br>
+</div>
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/84/three.min.js"></script>
+<script src="https://threejs.org/examples/js/controls/OrbitControls.js">
+</script>
+<script src="https://rawgit.com/mrdoob/three.js/master/examples/js/loaders/MTLLoader.js"></script>
+<script src="https://rawgit.com/mrdoob/three.js/master/examples/js/loaders/OBJLoader.js"></script>
+<script>
+var camera, scene, renderer, controls;
+var raycaster = new THREE.Raycaster();
+var mouse = new THREE.Vector2();
+
+var logs = [];
+var ti = [];
+var xzi = [];
+var firstPick = true;
+var isMoving = false;
+var avatar;
+var moveStart;
+var username ;
+var date ;
+var log;
+
+var size = 30 ;
+
+var url = 'https://tsanye.github.io/Web3D/Resource/' ;
+
+$('#select2').css ('display', 'none');
+$('#container').css ('display', 'none');
+$('#playRecord').css ('display', 'none');
+$('#option').css ('display', 'none');
+
+
+$('#submit1').click (function() {
+	$('#select1').css ('display', 'none');
+  $('#select2').css ('display', '');
+  username = $('#observerSelect').val();
+  showActivities();
+});
+
+$('#submit2').click (function() {
+	$('#select1').css ('display', 'none');
+  $('#container').css ('display', '');
+  $('#option').css ('display', '');
+  username = $('#uname').val();
+  addNewUser();
+});
+
+$('#submit3').click (function() {
+	$('#select2').css ('display', 'none');
+  $('#container').css ('display', '');
+  $('#playRecord').css ('display', '');	
+  date =  $('#dateSelect').val();
+});
+
+function showList(){
+
+	console.log ('in download ...');
+	logFilename = 'names.dat' ;
+	// which one to retrieve?
+	
+	$.get ("http://127.0.0.1:1337/readName?filename=" + logFilename, function ( data ) {
+		console.log ('dataOut: ' + data.output);
+		
+		var tmp = data.output.split (' ');
+		
+		for (var i = 0; i < tmp.length - 1 ; i++) {
+			$('#observerSelect').append ( "<option value=" + tmp[i] + ">" + tmp[i] + "</option>" );
+		}
+		
+	});
+
+}
+
+function showActivities(){
+
+	console.log ('in download ...');
+	logFilename = 'acts.dat' ;
+	// which one to retrieve?
+	
+	$.get ("http://127.0.0.1:1337/readName?filename=" + logFilename, function ( data ) {
+		console.log ('dataOut: ' + data.output);
+		
+		var tmp = data.output.split (' ');
+		
+		for (var i = 0; i < tmp.length - 1 ; i++) {
+			if( tmp[i].match(username) !=  null ){
+				var datei = tmp[i].substr( username.length , 8 ) ;
+				$('#dateSelect').append ( "<option value=" + datei + ">" + datei + "</option>" );
+			}
+		}
+		
+	});
+
+}
+
+function addNewUser(){
+	console.log ( 'login name: ' + username );
+	
+	$.get( "http://127.0.0.1:1337/login?name="+ username , function( data ) {
+		console.log ('after get');
+		console.log ('code: ' + data.status);
+		console.log ('output: ' + data.output);
+	
+	});(null)
+
+}
+
+var startTime = new Date().getTime();
+var pos = {
+  '1': [-25, -20],
+  '2': [-20, -60],
+  '3': [-65, 14],
+  '4': [-10, 57],
+  '5': [41, 70],
+  '6': [50, 0],
+  '7': [30, -65]
+}
+var pickables = [];
+var pick;
+
+$('#save').click(function() {
+  console.log(JSON.stringify(logs));
+
+  localStorage.setItem('activity', JSON.stringify(logs));
+  
+    var d = new Date();
+	var YYYYMMDD = d.getFullYear()*10000 + (d.getMonth()+1)*100 + d.getDate();
+	
+	saveLogname = username + YYYYMMDD ;
+	$.get( "http://127.0.0.1:1337/saveLog?name=" + saveLogname , function( data ) {
+		console.log ('after get');
+		console.log ('code: ' + data.status);
+		console.log ('output: ' + data.output);
+	
+	});(null)
+	
+	// IIFE of records
+	var dd = [];
+	dd.push (new Date().getTime());
+	dd.push (logs.length);
+	for (var i = 0; i < logs.length; i++) {
+		dd.push (logs[i].dt);
+		dd.push (logs[i].code);
+	}
+	console.log ('dd: ' + dd);
+	log = jQuery.param ({ data: dd });
+	console.log (log);
+	
+	logFilename = username + YYYYMMDD + '.log';
+	console.log ('filename:' + logFilename);
+	console.log ('before get:' + log);
+	
+	$.get ("http://127.0.0.1:1337/writelog?filename=" + logFilename + '&'+ log, function ( data ) {
+		
+	});
+	
+  
+});
+
+$('#play').click(function() {
+  startPlayback();
+});
+
+$('#clear').click (function() {
+	ti = [];
+  xzi = [];
+  logs = [];
+  firstPick = true;
+  move.material.visible = false;
+});
+
+$('#restore').click (function() {
+	logs = JSON.parse (localStorage.getItem ('activity'));
+});
+
+$('#replay').click ( function() {
+
+	console.log ('in download ...');
+	logFilename = $('#dateSelect').val() + '.log';
+	// which one to retrieve?
+	
+	$.get ("http://127.0.0.1:1337/readlog?filename="+logFilename, function ( data ) {
+		console.log ('dataOut: ' + data.output);
+		
+		var replaylog = data.output.split (' ');
+		var date = logs[0];
+		
+		logs = [] ;
+		
+		var n = replaylog[1];
+		for (var i = 0; i < n; i++) {
+			var record = {dt: replaylog[2+2*i], code: replaylog[2+2*i+1]};
+			logs.push(record) ;
+			ti.push ( replaylog[2+2*i] );
+			xzi.push (pos[ replaylog[2+2*i+1] ]);
+		}
+		isMoving = true;
+		avatar.material.visible = true;
+		moveStart = new Date().getTime();
+		
+	});
+});
+
+function startPlayback () {
+	if (logs.length === 0)
+  	return;
+    
+	for (var i = 0; i < logs.length; i++) {
+  	ti.push (logs[i].dt);
+    xzi.push (pos[ logs[i].code]);
+  }
+  isMoving = true;
+  avatar.material.visible = true;
+  moveStart = new Date().getTime();
+  
+}
+
+init();
+animate();
+
+function loadTexture(  mesh , url ) {
+
+	// instantiate a loader
+  var loader = new THREE.TextureLoader();
+  loader.setCrossOrigin('');
+  // load a resource
+  loader.load(
+    url, 
+    function (texture) {   // Function when resource is loaded
+    	console.log ('texture loaded ...');
+      mesh.material = new THREE.MeshLambertMaterial( { map: texture});     
+    },   
+    function(xhr) {   // Function called when download progresses
+      console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+    },   
+    function(xhr) {   // Function called when download errors
+      console.log('An error happened');
+    }
+  );
+ 
+}
+
+function loaders(furnitureSize , mtlName, objName, pos) {
+
+  // model
+  var onProgress = function(xhr) {
+    if (xhr.lengthComputable) {
+      var percentComplete = xhr.loaded / xhr.total * 100;
+      console.log(Math.round(percentComplete, 2) + '% downloaded');
+    }
+  };
+
+  var onError = function(xhr) {};
+
+  var mtlLoader = new THREE.MTLLoader();
+  mtlLoader.setPath('Resource/');
+  mtlLoader.load( mtlName, function(materials) {
+
+    materials.preload();
+
+    var objLoader = new THREE.OBJLoader();
+    objLoader.setMaterials(materials);
+    objLoader.setPath('Resource/');
+    objLoader.load( objName, function(object) {
+      var furniture = new THREE.Object3D();
+      furniture = unitize(object, furnitureSize);
+      scene.add(furniture);
+      
+      furniture.position.copy(pos);
+
+      object.traverse(
+        function(mesh) {
+          if (mesh instanceof THREE.Mesh) {
+            mesh.material.side = THREE.DoubleSide;
+          }
+        });
+
+    }, onProgress, onError);
+
+  });
+
+}
+
+function unitize(object, targetSize) {
+
+  // find bounding box of 'object'
+  var box3 = new THREE.Box3();
+  box3.setFromObject(object);
+  var size = new THREE.Vector3();
+  size.subVectors(box3.max, box3.min);
+  var center = new THREE.Vector3();
+  center.addVectors(box3.max, box3.min).multiplyScalar(0.5);
+
+  console.log('center: ' + center.x + ', ' + center.y + ', ' + center.z);
+  console.log('size: ' + size.x + ', ' + size.y + ', ' + size.z);
+
+  // uniform scaling according to objSize
+  var objSize = findMax(size);
+  var scaleSet = targetSize / objSize;
+
+  var theObject = new THREE.Object3D();
+  theObject.add(object);
+  object.scale.set(scaleSet, scaleSet, scaleSet);
+  object.position.set(-center.x * scaleSet, -center.y * scaleSet + size.y / 2 * scaleSet, -center.z * scaleSet);
+
+  return theObject;
+
+  // helper function
+  function findMax(v) {
+    if (v.x > v.y) {
+      return v.x > v.z ? v.x : v.z;
+    } else { // v.y > v.x
+      return v.y > v.z ? v.y : v.z;
+    }
+  }
+
+}
+
+function createAvatar(){
+
+	var geometry = new THREE.Geometry();
+  geometry.vertices.push(
+    new THREE.Vector3(0, 5, -5),
+    new THREE.Vector3(-5, 0, -5 ),
+    new THREE.Vector3(5, 0, -5),
+    new THREE.Vector3(0, 0, 5)
+  );
+  geometry.faces.push(
+    new THREE.Face3(3, 1, 2),
+    new THREE.Face3(3, 2, 0),
+    new THREE.Face3(3, 0, 1),
+    new THREE.Face3(1, 0, 2)
+  );
+  geometry.computeBoundingSphere();
+  geometry.computeFaceNormals();
+  geometry.computeVertexNormals();
+
+  var material = new THREE.MeshLambertMaterial({color: 0x00ffff }) ;
+  avatar = new THREE.Mesh(geometry, material);
+  scene.add(avatar) ;
+  avatar.material.visible = false;
+}
+
+function buildFloorPlan(){
+	setTERRACE();
+  setLIVING();
+  setSTOR();
+	setBEDROOM();
+  setBATH();
+
+}
+
+function setTERRACE(){
+
+	var Wall0 = new THREE.Mesh(new THREE.BoxGeometry(98, 10, 1), new THREE.MeshLambertMaterial({
+    color: 0xEE7700, transparent: true, opacity: 0.7
+  }));
+  Wall0.position.set(3, 5, 82);
+  scene.add(Wall0);
+  
+  var Wall1 = new THREE.Mesh(new THREE.BoxGeometry(53, 10, 1), new THREE.MeshLambertMaterial({
+    color: 0xEE7700, transparent: true, opacity: 0.7
+  }));
+  Wall1.rotation.y = Math.PI / 2;
+  Wall1.position.set(-45.5, 5, 55);
+  scene.add(Wall1);
+  
+  var Wall2 = new THREE.Mesh(new THREE.BoxGeometry(47, 10, 1), new THREE.MeshLambertMaterial({
+    color: 0xEE7700c, transparent: true, opacity: 0.7
+  }));
+  Wall2.rotation.y = Math.PI / 2;
+  Wall2.position.set(51.5, 5, 58);
+  scene.add(Wall2);
+	
+  var geometry = new THREE.PlaneGeometry(96, 50);
+  var material = new THREE.MeshLambertMaterial();
+
+  var ground = new THREE.Mesh(geometry, material);
+  scene.add(ground);
+  ground.rotation.x = -Math.PI / 2;
+  loadTexture(ground , 'https://i.imgur.com/A03OAXm.jpg');
+	ground.position.set( 3 , 0.5 , 56);
+  
+}
+
+function setLIVING(){
+  
+  var Wall0 = new THREE.Mesh(new THREE.BoxGeometry(38, 20, 4), new THREE.MeshLambertMaterial({
+    color: 0xEE7700, transparent: true, opacity: 0.7
+  }));
+  Wall0.position.set(61, 10, 32.5);
+  scene.add(Wall0);
+  
+  var Wall1 = new THREE.Mesh(new THREE.BoxGeometry(113, 20, 4), new THREE.MeshLambertMaterial({
+    color:0xEE7700, transparent: true, opacity: 0.7
+  }));
+  Wall1.rotation.y = Math.PI / 2;
+  Wall1.position.set(78, 10, -26);
+  scene.add(Wall1);
+  
+  var Wall2 = new THREE.Mesh(new THREE.BoxGeometry(5, 20, 4), new THREE.MeshLambertMaterial({
+    color: 0xEE7700, transparent: true, opacity: 0.7
+  }));
+  Wall2.position.set(2.5, 10, 32.5);
+  scene.add(Wall2);
+  
+  var Wall3 = new THREE.Mesh(new THREE.BoxGeometry(55, 20, 4), new THREE.MeshLambertMaterial({
+    color: 0xEE7700, transparent: true, opacity: 0.7
+  }));
+  Wall3.position.set(48.5, 10, -80.5);
+  scene.add(Wall3);
+  
+  var Wall4 = new THREE.Mesh(new THREE.BoxGeometry(13, 20, 2), new THREE.MeshLambertMaterial({
+    color: 0xEE7700, transparent: true, opacity: 0.7
+  }));
+  Wall4.position.set(69.5, 10, -28.5);
+  scene.add(Wall4);
+  
+  var Wall5 = new THREE.Mesh(new THREE.BoxGeometry(4, 20, 2), new THREE.MeshLambertMaterial({
+    color: 0xEE7700, transparent: true, opacity: 0.7
+  }));
+  Wall5.position.set(2, 10, 29.5);
+  scene.add(Wall5);
+  
+  var geometry = new THREE.PlaneGeometry(74, 60);
+  var material = new THREE.MeshLambertMaterial();
+
+  var ground = new THREE.Mesh(geometry, material);
+  scene.add(ground);
+  ground.rotation.x = -Math.PI / 2;
+  loadTexture(ground , 'https://i.imgur.com/6VdzmpZ.jpg');
+	ground.position.set( 40 , 0.5 , 1);
+  
+  var geometry = new THREE.PlaneGeometry(74, 50);
+
+  var ground2 = new THREE.Mesh(geometry, material);
+  scene.add(ground2);
+  ground2.rotation.x = -Math.PI / 2;
+  loadTexture(ground2 , 'https://i.imgur.com/7TxRw0E.jpg');
+	ground2.position.set( 40 , 0.5 , -54);
+  
+  
+  
+}
+
+function setSTOR(){
+
+	 var Wall0 = new THREE.Mesh(new THREE.BoxGeometry(35, 20, 4), new THREE.MeshLambertMaterial({
+    color: 0xEE7700, transparent: true, opacity: 0.7
+  }));
+  Wall0.position.set(-62.5, 10, 26.5);
+  scene.add(Wall0);
+  
+  var Wall1 = new THREE.Mesh(new THREE.BoxGeometry(49, 20, 4), new THREE.MeshLambertMaterial({
+    color: 0xEE7700, transparent: true, opacity: 0.7
+  }));
+  Wall1.rotation.y = Math.PI / 2;
+  Wall1.position.set(-78, 10, 0);
+  scene.add(Wall1);
+  
+  var Wall2 = new THREE.Mesh(new THREE.BoxGeometry(31, 20, 4), new THREE.MeshLambertMaterial({
+    color: 0xEE7700, transparent: true, opacity: 0.7
+  }));
+  Wall2.position.set(-64.5, 10, -26.5);
+  scene.add(Wall2);
+  
+  var geometry = new THREE.PlaneGeometry(32, 49);
+  var material = new THREE.MeshLambertMaterial();
+
+  var ground = new THREE.Mesh(geometry, material);
+  scene.add(ground);
+  ground.rotation.x = -Math.PI / 2;
+  loadTexture(ground , 'https://i.imgur.com/ovt3l1l.jpg');
+	ground.position.set( -61 , 0.5 , 0 );
+
+}
+
+function setBEDROOM(){
+
+	var Wall0 = new THREE.Mesh(new THREE.BoxGeometry(92, 20, 4), new THREE.MeshLambertMaterial({
+    color: 0xEE7700, transparent: true, opacity: 0.7
+  }));
+  Wall0.rotation.y = Math.PI / 2;
+  Wall0.position.set(-47, 10, -36.5);
+  scene.add(Wall0);
+  
+	var Wall1 = new THREE.Mesh(new THREE.BoxGeometry(11, 20, 4), new THREE.MeshLambertMaterial({
+    color: 0xEE7700, transparent: true, opacity: 0.7
+  }));
+  Wall1.position.set(-39.5, 10, 7.5);
+  scene.add(Wall1);
+  
+  var Wall2 = new THREE.Mesh(new THREE.BoxGeometry(14, 20, 4), new THREE.MeshLambertMaterial({
+    color: 0xEE7700, transparent: true, opacity: 0.7
+  }));
+  Wall2.position.set(-7, 10, 7.5);
+  scene.add(Wall2);
+  
+  var Wall3 = new THREE.Mesh(new THREE.BoxGeometry(4, 20, 5), new THREE.MeshLambertMaterial({
+    color: 0xEE7700, transparent: true, opacity: 0.7
+  }));
+  Wall3.position.set(2, 10, 8);
+  scene.add(Wall3);
+  
+  var Wall4 = new THREE.Mesh(new THREE.BoxGeometry(19, 20, 2), new THREE.MeshLambertMaterial({
+    color: 0xEE7700, transparent: true, opacity: 0.7
+  }));
+  Wall4.rotation.y = Math.PI / 2;
+  Wall4.position.set(3, 10, -4);
+  scene.add(Wall4);
+  
+  var Wall5 = new THREE.Mesh(new THREE.BoxGeometry(21, 20, 2), new THREE.MeshLambertMaterial({
+    color: 0xEE7700, transparent: true, opacity: 0.7
+  }));
+  Wall5.rotation.y = Math.PI / 2;
+  Wall5.position.set(3, 10, -39);
+  scene.add(Wall5);
+  
+  var geometry = new THREE.PlaneGeometry(48, 58);
+  var material = new THREE.MeshLambertMaterial();
+
+  var ground = new THREE.Mesh(geometry, material);
+  scene.add(ground);
+  ground.rotation.x = -Math.PI / 2;
+  loadTexture(ground , 'https://i.imgur.com/SR17XuY.jpg');
+	ground.position.set( -21 , 0.5 , -20);
+  
+  var geometry = new THREE.PlaneGeometry(48, 22);
+  var ground2 = new THREE.Mesh(geometry, material);
+  scene.add(ground2);
+  ground2.rotation.x = -Math.PI / 2;
+  loadTexture(ground2 , ' https://i.imgur.com/w09cpGd.jpg');
+	ground2.position.set( -21 , 0.5 , 20);
+  
+ 
+
+}
+
+function setBATH(){
+	
+  var Wall0 = new THREE.Mesh(new THREE.BoxGeometry(50, 20, 4), new THREE.MeshLambertMaterial({
+    color: 0xEE7700, transparent: true, opacity: 0.7
+  }));
+  Wall0.position.set(-20, 10, -80.5);
+  scene.add(Wall0);
+  
+   var Wall1 = new THREE.Mesh(new THREE.BoxGeometry(19, 20, 2), new THREE.MeshLambertMaterial({
+    color: 0xEE7700, transparent: true, opacity: 0.7
+  }));
+  Wall1.position.set(-7.5, 10, -46.5);
+  scene.add(Wall1);
+  
+    var Wall2 = new THREE.Mesh(new THREE.BoxGeometry(12, 20, 1), new THREE.MeshLambertMaterial({
+    color: 0xEE7700, transparent: true, opacity: 0.7
+  }));
+  Wall2.position.set(-23, 10, -46.5);
+  scene.add(Wall2);
+  
+  var Wall3 = new THREE.Mesh(new THREE.BoxGeometry(13, 20, 2), new THREE.MeshLambertMaterial({
+    color: 0xEE7700, transparent: true, opacity: 0.7
+  }));
+  Wall3.position.set(-38.5, 10, -46.5);
+  scene.add(Wall3);
+  
+   var Wall4 = new THREE.Mesh(new THREE.BoxGeometry(4, 20, 3), new THREE.MeshLambertMaterial({
+    color: 0xEE7700, transparent: true, opacity: 0.7
+  }));
+  Wall4.position.set(3, 10, -77);
+  scene.add(Wall4);
+  
+  var Wall5 = new THREE.Mesh(new THREE.BoxGeometry(11, 20, 2), new THREE.MeshLambertMaterial({
+    color: 0xEE7700, transparent: true, opacity: 0.7
+  }));
+  Wall5.rotation.y = Math.PI / 2;
+  Wall5.position.set(3, 10, -70);
+  scene.add(Wall5);
+  
+  var Wall6 = new THREE.Mesh(new THREE.BoxGeometry(3, 20, 2), new THREE.MeshLambertMaterial({
+    color: 0xEE7700, transparent: true, opacity: 0.7
+  }));
+  Wall6.position.set(-43.5, 10, -59.5);
+  scene.add(Wall6);
+  
+  var geometry = new THREE.PlaneGeometry(46, 31);
+  var material = new THREE.MeshLambertMaterial();
+
+  var ground = new THREE.Mesh(geometry, material);
+  scene.add(ground);
+  ground.rotation.x = -Math.PI / 2;
+  loadTexture(ground , 'https://i.imgur.com/lswrELD.jpg');
+	ground.position.set( -22 , 0.5 , -63);
+}
+
+function init() {
+  
+  showList();
+  
+  var ww = $("#container").innerWidth();
+  var hh = $("#container").innerHeight();
+  renderer = new THREE.WebGLRenderer();
+  renderer.setSize(ww, hh);
+  renderer.setClearColor(0x888888);
+  $("#container").append(renderer.domElement);
+
+  ////////////////////////////////////////////////
+	
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(50, ww / hh, 1, 10000);
+  camera.position.set(0, 300, 150);
+  
+  scene.add(camera);
+
+  var ambient = new THREE.AmbientLight(0x444444);
+  scene.add(ambient);
+
+  var directionalLight = new THREE.DirectionalLight(0xffffff);
+  directionalLight.position.set(0, 1, 1).normalize();
+  scene.add(directionalLight);
+
+ 	buildFloorPlan();
+
+  var gridXZ = new THREE.GridHelper(200, 50, 'black', 'white');
+  scene.add(gridXZ);
+  
+  var geometry = new THREE.CircleGeometry(5, 32);
+  var material = new THREE.MeshBasicMaterial();
+  var circle = new THREE.Mesh(geometry, material);
+  circle.rotation.x = -Math.PI / 2;
+
+  addLoc(0x0000ff, pos['1'][0], pos['1'][1], '1');
+  addLoc(0x00ff00, pos['2'][0], pos['2'][1], '2');
+  addLoc(0x00ffff, pos['3'][0], pos['3'][1], '3');
+  addLoc(0xff0000, pos['4'][0], pos['4'][1], '4');
+  addLoc(0xff00ff, pos['5'][0], pos['5'][1], '5');
+  addLoc(0xffff00, pos['6'][0], pos['6'][1], '6');
+  addLoc(0x888888, pos['7'][0], pos['7'][1], '7');
+
+  function addLoc(hexColor, x, z, name) {
+    var cc = circle.clone();
+    cc.material = new THREE.MeshBasicMaterial({
+      color: hexColor
+    });
+    cc.position.set(x, 2, z);
+    scene.add(cc);
+    cc.name = name;
+    pickables.push(cc);
+  }
+  
+  createAvatar();
+  
+  pick = new THREE.Mesh (new THREE.RingGeometry (5, 7, 32), new THREE.MeshBasicMaterial({color:0x000000}));
+  pick.rotation.x = -Math.PI/2 ;
+  scene.add (pick);
+  pick.material.visible = false;
+
+  loaders(size , 'sofa.mtl', 'sofa.obj', new THREE.Vector3(60,0,-20) );
+  loaders(size , 'bed.mtl', 'bed.obj', new THREE.Vector3(-13,0,-38) );	 
+  loaders( 15 , 'toilet.mtl', 'toilet.obj', new THREE.Vector3(-35,0,-70) );	
+  loaders( 15 , 'box.mtl', 'box.obj', new THREE.Vector3(-67,0,-15) );	
+  loaders( 35 , 'tableAndChairs.mtl', 'tableAndChairs.obj', new THREE.Vector3(55,0,-50) );
+  controls = new THREE.OrbitControls(camera, renderer.domElement);
+  window.addEventListener('resize', onWindowResize, false);
+  $('#container').on('mousedown', onDocumentMouseDown);
+  $('#container').on('mouseup', onDocumentMouseUp);
+   
+}
+
+function onWindowResize() {
+  var ww = $("#container").innerWidth();
+  var hh = $("#container").innerHeight();
+
+  camera.aspect = ww / hh;
+  camera.updateProjectionMatrix();
+  renderer.setSize(ww, hh);
+}
+
+function onDocumentMouseUp () {
+	pick.material.visible = false;
+}
+
+
+function onDocumentMouseDown(event) {
+
+  event.preventDefault();
+
+  var viewportPos = $('#container').get(0).getBoundingClientRect();
+  mouse.x = ((event.clientX - viewportPos.left) / $('#container').innerWidth()) * 2 - 1;
+  mouse.y = -((event.clientY - viewportPos.top) / $('#container').innerHeight()) * 2 + 1;
+
+  raycaster.setFromCamera(mouse, camera);
+  var intersects = raycaster.intersectObjects(pickables);
+  if (intersects.length > 0) {
+  
+  console.log (intersects[0].object.name);
+  
+  	pick.material.visible = true;
+    var xz = pos[intersects[0].object.name];
+    pick.position.x = xz[0];
+    pick.position.y = 2 ;  
+    pick.position.z = xz[1]; 
+    
+  	if (firstPick) {
+    	firstPick = false;
+      startTime = new Date().getTime();
+      dt = 0;
+    } else {
+    	dt = new Date().getTime() - startTime;
+    }
+    var record = {
+      dt: dt,
+      code: intersects[0].object.name
+    };
+    logs.push(record);
+  }
+}
+
+function animate() {
+
+  controls.update();
+  requestAnimationFrame(animate);
+  render();
+  if (isMoving) {
+  	t = new Date().getTime() - moveStart;
+    if (t > logs[logs.length-1].dt) {
+    	isMoving = false;
+      return;
+    }
+    var mov = interpolate (t);
+    avatar.position.x = mov[0];
+    avatar.position.y = 2.1 ;
+    avatar.position.z = mov[1];    
+  }
+  
+  function interpolate(t) {
+  	for (var i = 0; i < ti.length; i++) {
+    	if (t < ti[i]) break;
+    }
+    var s = (t - ti[i-1])/(ti[i] - ti[i-1]);
+    var x = (1-s)*xzi[i-1][0] + s*xzi[i][0];
+    var z = (1-s)*xzi[i-1][1] + s*xzi[i][1];
+    
+    var tmp = ( new THREE.Vector3( xzi[i-1][0] -  xzi[i][0] , 0 , xzi[i-1][1] - xzi[i][1] ) ) ;
+    var angle = Math.atan2(-tmp.x, -tmp.z);
+    avatar.rotation.y  = angle ;
+    
+    return [x,z];
+  }
+  
+}
+
+function render() {
+  renderer.render(scene, camera);
+}
+</script>
+</body>
+
+</html>
